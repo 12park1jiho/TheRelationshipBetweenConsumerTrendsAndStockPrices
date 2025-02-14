@@ -11,6 +11,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
+from xgboost import plot_importance
 
 # 한글 폰트 설정 (stock_price_analysis.py 에도 추가)
 plt.rc('font', family='Malgun Gothic')
@@ -74,6 +75,25 @@ def analyze_stock_price(stock_name, consumer_data, df_stock_monthly):
         print(f"      Random Forest Score: {rf_sp_score:.4f}")
         r2_scores_sp.append(rf_sp_score)
 
+        # Random Forest 모델이 학습된 객체 (예: rf_model)에서 Feature Importance 추출
+        feature_importances = rf_sp.feature_importances_
+        feature_names = X_train_sp.columns  # 학습 데이터의 Feature 이름
+
+        # 중요도 순서대로 정렬
+        sorted_idx = np.argsort(feature_importances)[::-1]
+
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=feature_importances[sorted_idx], y=np.array(feature_names)[sorted_idx])
+        plt.xlabel("Feature Importance Score")
+        plt.ylabel("Features")
+        plt.title(f"{stock_name} - Random Forest Feature Importance")
+
+        # 그래프 파일 저장
+        feature_importance_rf_path = f"FeatureImportance/{stock_name}_rf_feature_importance.png"
+        plt.savefig(feature_importance_rf_path, dpi=300, bbox_inches='tight')
+        plt.close()  # 그래프 닫기
+        print(f"Random Forest Feature Importance 저장 완료: {feature_importance_rf_path}")
+
         # 3. XGBoost
         print("    3. XGBoost 모델 학습 및 평가 시작")
         xgb_sp = XGBRegressor(random_state=42)
@@ -81,6 +101,16 @@ def analyze_stock_price(stock_name, consumer_data, df_stock_monthly):
         xgb_sp_score = xgb_sp.score(X_test_sp, y_test_sp)
         print(f"      XGBoost Score: {xgb_sp_score:.4f}")
         r2_scores_sp.append(xgb_sp_score)
+
+        # XGBoost 모델 학습 후 Feature Importance 출력
+        fig, ax = plt.subplots(figsize=(8, 6))
+        plot_importance(xgb_sp, importance_type='weight', ax=ax)
+
+        # 그래프 파일 저장
+        feature_importance_xgb_path = f"FeatureImportance/{stock_name}_xgb_feature_importance.png"
+        plt.savefig(feature_importance_xgb_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"XGBoost Feature Importance 저장 완료: {feature_importance_xgb_path}")
 
         # 4. ARIMA
         print("    4. ARIMA 모델 학습 및 평가 시작")
@@ -175,6 +205,7 @@ def analyze_stock_price(stock_name, consumer_data, df_stock_monthly):
     else:
         print("  [분석 1] 소비자동향 + 주가 데이터 분석 생략 (데이터 로드 실패)")
     print(f"  --- [분석 1] 소비자동향 + 주가 데이터 분석 완료 ---")
+
     return sp_results, model_names_sp, r2_scores_sp
 
 # (main.py에서 호출 예시)

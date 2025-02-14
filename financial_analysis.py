@@ -103,6 +103,20 @@ def analyze_financial_data(stock_name, consumer_data, financial_data):
             print(f"      Random Forest Score: {rf_fi_score:.4f}")
             r2_scores_fi.append(rf_fi_score)
 
+            # Random Forest 모델이 학습된 객체 (예: rf_model)에서 Feature Importance 추출
+            feature_importances = rf_fi.feature_importances_
+            feature_names = X_train_fi.columns  # 학습 데이터의 Feature 이름
+
+            # 중요도 순서대로 정렬
+            sorted_idx = np.argsort(feature_importances)[::-1]
+
+            plt.figure(figsize=(10, 6))
+            sns.barplot(x=feature_importances[sorted_idx], y=np.array(feature_names)[sorted_idx])
+            plt.xlabel("Feature Importance Score")
+            plt.ylabel("Features")
+            plt.title("Random Forest Feature Importance")
+            plt.show()
+
             # 3. XGBoost
             print("    3. XGBoost 모델 학습 및 평가 시작")
             xgb_fi = XGBRegressor(random_state=42)
@@ -110,6 +124,12 @@ def analyze_financial_data(stock_name, consumer_data, financial_data):
             xgb_fi_score = xgb_fi.score(X_test_fi, y_test_fi)
             print(f"      XGBoost Score: {xgb_fi_score:.4f}")
             r2_scores_fi.append(xgb_fi_score)
+
+            from xgboost import plot_importance
+
+            # XGBoost 모델 학습 후 Feature Importance 출력
+            plot_importance(xgb_fi, importance_type='weight')  # 'gain', 'cover' 옵션도 가능
+            plt.show()
 
             # 4. ARIMA
             print("    4. ARIMA 모델 학습 및 평가 시작")
